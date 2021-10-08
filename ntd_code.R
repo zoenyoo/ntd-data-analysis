@@ -10,7 +10,6 @@ library(rphl)
 library(scales)
 library(grid)
 
-
 #### DOWNLOAD NTD MOST RECENT FILES -------------------------------------------------------------------####
 
 # Use to update all NTD data (no need to do daily but good to check for updates)
@@ -21,7 +20,7 @@ update_all_data <- function() {
   agency_info_file <- download.file(agency_info_url, "./inputs/agency_info_file")
   
   # Download Monthly Unlinked Passenger Trips 
-  url_monthly_data <- "https://www.transit.dot.gov/sites/fta.dot.gov/files/2021-06/April%202021%20Adjusted%20Database.xlsx"
+  url_monthly_data <- "https://www.transit.dot.gov/sites/fta.dot.gov/files/2021-09/July%202021%20Adjusted%20Database.xlsx"
   ntd_monthly <- download.file(url_monthly_data, "./inputs/ntd_monthly")
   
   ##Download "TS2.1 - Service Data and Operating Expenses Time-Series by Mode" from FTA website
@@ -277,10 +276,12 @@ load_monthly_upt <- function(path= "./inputs/ntd_monthly_upt_file.xlsx") {
     filter(is.na(Agency) == FALSE) 
 }
 
+theme_phl <- function() {theme(axis.title.x = element_blank(), axis.text.x = element_blank())} # for the theme
+
 #### READ DATA INTO ENVIRONMENT-----------------------------------------------------------------------####
 
 # Call when you want to redownload all the NTD data into the file path:
-# update_all_data()
+update_all_data()
 
 # Key assumptions: 
 # Bus = Motorbus and Trolley Bus operations
@@ -303,7 +304,7 @@ plot_agency_mode_yearly <- function(ntd_yearly, agency_name = "Southeastern Penn
   p <- ggplot(d, aes(x = Year, y = upt, fill = Mode)) + geom_col() + 
     geom_text(aes(label = paste(format(round(upt / 1e6, 1), trim = TRUE), "M")), position = position_stack(vjust = 0.5), cex = (3)) + 
     scale_y_continuous("Annual Ridership", labels = scales::comma) + scale_fill_brewer(palette = "Paired") + 
-    labs(title = paste(agency_name, "Yearly Ridership on", mode)) + theme(legend.position = "none") +
+    labs(title = paste(agency_name, "\n Yearly Ridership on", mode)) + theme(legend.position = "none") +
     theme_phl()
   
   return (p)
@@ -324,7 +325,8 @@ plot_agency_stackedmodes_yearly <- function(ntd_yearly, agency_name, Year1, Year
   p <- ggplot(d, aes(x = Year, y = upt, fill = Mode)) + geom_col() + 
     geom_text(aes(label = paste(format(round(upt / 1e6, 1), trim = TRUE), "M")), position = position_stack(vjust = 0.5), cex = (3)) + 
     scale_y_continuous("Annual Ridership", labels = scales::comma) + scale_fill_brewer(palette = "Paired") + 
-    labs(title = paste(agency_name, "Yearly Ridership by Mode")) + theme(legend.position = "none") +
+    labs(title = paste(agency_name, "\n Yearly Ridership by Mode")) + theme(legend.position = "none") +
+    xlab('Year')
     theme_phl()
   return (p)
 }
@@ -339,7 +341,7 @@ plot_agency_stackedmodes_yearly_pct <- function(ntd_yearly, agency_name, Year1, 
   
   p <- ggplot(d, aes(x = Year, y = upt, fill = Mode)) + geom_col(position = 'fill', stat = 'identity') + 
     scale_y_continuous("Annual Ridership", labels = scales::percent) + theme_phl() + scale_fill_brewer(palette = "Paired") +
-    labs(title = paste(agency_name, " Yearly Ridership by Mode"))
+    labs(title = paste(agency_name, " \n Yearly Ridership by Mode"))
   return (p)
 }
 septa_yearly_stacked <- plot_agency_stackedmodes_yearly_pct(ntd_yearly, septa_name, 2002, 2019)
@@ -464,9 +466,8 @@ plot_uza_yearly_ridership_indexed <- function(ntd_yearly, uza_list, Year1, Year2
     theme_linedraw() + scale_fill_brewer(palette = "Paired") + 
     geom_dl(aes(label = `UZA Name`), method = list(dl.trans(x = x + 0.2), "last.points", cex = 0.8)) + 
     scale_color_discrete(guide = 'none') +
-    geom_hline(aes(yintercept = 1)) + 
-    theme(plot.margin = unit(c(1,3,1,1), "lines"))  +
-    theme_phl()
+    geom_hline(aes(yintercept = 1)) +
+    theme(plot.margin = unit(c(1,3,1,1), "lines"))
   
   p$layout$clip[p$layout$name == "panel"] <- "off"
   
@@ -497,11 +498,12 @@ plot_uza_speeds <- function(ntd_yearly, uza_list = find_top_x_cities_bymode(ntd_
   plot <- ggplot(dat, aes(x = reorder(`UZA Name`, -`Vehicle Miles per Revenue Hour`), 
                           y = `Vehicle Miles per Revenue Hour`)) + 
     geom_col(aes(fill = highlight_flag)) +
-    xlab("Uranized Area") + 
+    xlab("Urbanized Area") + 
     ylab(paste0("Vehicle Miles per Revenue Hour ", data_year)) + 
     theme_linedraw() + scale_fill_brewer(palette = "Paired") + 
     theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-    theme(legend.position = "none")
+    theme(legend.position = "none") +
+    theme(plot.margin=unit(c(.5,.5,.5,1.5),"cm"))
   
   if(title_on == TRUE) { 
     return(plot + ggtitle(paste0("Philadelphia Among Slowest Peer ", mode, " Systems (", data_year,  " Data)")))
@@ -527,9 +529,9 @@ plot_agency_speeds <- function(ntd_yearly, agency_list = find_top_x_agencies_bym
     xlab("Agency") + 
     ylab(paste0("Vehicle Miles per Revenue Hour (", data_year, ")")) +
     theme_linedraw() + scale_fill_brewer(palette = "Paired") +
-    rphl::theme_phl()+ 
-    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-    theme(legend.position = "none")
+    theme(axis.text.x = element_text(size = 8, angle = 45, hjust = 1)) +
+    theme(legend.position = "none") +
+    theme(plot.margin=unit(c(.5,.5,.5,3),"cm"))
   
   if(title_on == TRUE) { 
       return(plot + ggtitle(paste0("SEPTA Among Slowest Peer ", mode, " Systems (", data_year,  " Data)")))
@@ -575,7 +577,7 @@ plot_speed_top_x_mode_agencies <- function(ntd_yearly, mode, number_agencies, mi
   
   return(plot)
 }
-plot_speed_top_x_mode_agencies(ntd_yearly, "Commuter Rail", 6, data_year = 2017)
+plot_speed_top_x_mode_agencies(ntd_yearly, "Commuter Rail", 6, data_year = 2019)
 plot_speed_top_x_mode_agencies(ntd_yearly, "Bus", 15, data_year = 2017)
 largest_15agency_bus_speeds_2019 <- plot_speed_top_x_mode_agencies(ntd_yearly, "Bus", 15, data_year = 2019)
 largest_15agency_bus_speeds_2019
@@ -643,6 +645,8 @@ write_csv(septa_modal_yearly_ridership_data, "./outputs/data/septa_yearly_bymode
 
 #clean_ntd_yearly <- clean_ntd_yearly_data(ntd_yearly_OpExp_data, ntd_yearly_Fares_data, ntd_yearly_ridership_data, Year1 = 2002, Year2 = 2018)
 
+  
+
 plot_yearly_recovery_bymode <- function(ntd_yearly, NTD_ID = 30019, mode = "Bus") {
   recovery_dat <- ntd_yearly %>% filter(`NTD ID` == NTD_ID) %>% filter(Mode == mode) %>% 
     group_by(Year)
@@ -681,8 +685,8 @@ plot_yearly_ridership_bymode <- function(ntd_yearly, NTD_ID = 30019, mode = "Bus
     scale_y_continuous(labels = comma,
                        limits = c(min(recovery_dat$upt) - .05 * min(recovery_dat$upt), 
                                   max(recovery_dat$upt) + .05 * max(recovery_dat$upt))) + #adding commas to the numbers on y axis
-    theme_phl()
-  #+ theme(axis.title.x = element_blank(), axis.text.x = element_blank()) #Enable this line if you want to get rid of the first axis lables when combining two graphs 
+    theme_phl() +
+    theme(axis.title.x = element_blank(), axis.text.x = element_blank()) #Enable this line if you want to get rid of the first axis lables when combining two graphs 
   
   return(plot)
 }
@@ -696,3 +700,42 @@ grid.draw(rbind(ggplotGrob(rail_recovery_yearly), ggplotGrob(rail_ridership_year
 
 
 
+
+
+
+
+test <- function(ntd_yearly, Year1, Year2, title_on = TRUE) {
+  x <- ntd_yearly %>%
+    group_by(`UZA Name`, `Year`, `highlight_flag`) %>% 
+    summarise(upt = sum(upt)) %>% 
+    filter(Year >= Year1 & Year <= Year2) %>% #select rows between years
+    #find_yearly_ridership_by_UZA() %>% #drill down to necessary values
+    filter(upt > 0) %>%
+    filter(!is.na(highlight_flag))  %>%
+    group_by(highlight_flag, Year) %>%
+    summarise(upt = sum(upt)) %>%
+    mutate(delta = upt / first(upt)) %>%
+    mutate(name = ifelse(highlight_flag == FALSE, "National", "Philadelphia, PA-NJ-DE-MD"))
+  
+  p <- ggplot(x, aes(x = Year, y = delta, colour =  `name`, group = `highlight_flag`)) + geom_line() + 
+    scale_y_continuous("Annual Ridership (All Modes), Indexed", 
+                       labels = scales::percent_format(),
+                       limits = c(min(x$delta) - 0.05, max(x$delta + 0.05))) + 
+    scale_x_discrete(expand = expand_scale(mult = c(0, 0.4))) +
+    theme_linedraw() + scale_fill_brewer(palette = "Paired") + 
+    geom_dl(aes(label = `name`), method = list(dl.trans(x = x + 0.2), "last.points", cex = 0.8)) + 
+    scale_color_discrete(guide = 'none') +
+    geom_hline(aes(yintercept = 1)) +
+    theme(plot.margin = unit(c(1,3,1,1), "lines")) 
+  
+  p$layout$clip[p$layout$name == "panel"] <- "off"
+  
+  if(title_on == TRUE) { 
+    return( p + labs(title = paste("Comparing Transit Ridership at the National Level and in Philadelphia")))
+  }
+  else { return(p) }
+  
+  return(p)
+}
+
+test(ntd_yearly, 2017, 2019, title_on = TRUE)
